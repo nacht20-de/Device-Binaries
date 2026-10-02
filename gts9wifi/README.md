@@ -75,3 +75,21 @@ RedriverDxe, SecEnvDxe, SubPmicDxe, VibDxe.
 - **Patch:** Changed Removable State to Non-Removable.
 - **Patch Creator:** [N1kroks](https://github.com/N1kroks)
 - **Note:** Identical to dm2q's patched file.
+
+### ButtonsDxe:
+
+- **Reason:** To make the Power Button usable as Enter (Key Confirm) in UEFI.
+- **Patch:** The Power Key (id 1) emitted `ScanCode 0x80` only, which no UEFI
+  menu consumes; it now emits `UnicodeChar 0x0D` (`CHAR_CARRIAGE_RETURN`)
+  with `ScanCode 0` instead. Volume Keys are unchanged (their values keep the
+  high half zero; `UnicodeChar` is pre-zeroed in the handler).
+- **Patch Details:** Two instructions in the Key Handler
+  (file offsets `0x3ACC` and `0x3AE0`, identical to RVAs in this PE):
+  `movz w8, #0x80` -> `movz w8, #0xD, lsl #16` and
+  `strh w8, [x29, #0x18]` -> `str w8, [x29, #0x18]`, turning the 16-bit
+  ScanCode-only store into a 32-bit store of `{ScanCode 0, UnicodeChar CR}`
+  into the queued `EFI_INPUT_KEY`.
+- **Patch Creator:** [nacht20-de](https://github.com/nacht20-de), adapted from
+  the gts8p ButtonsDxe patch by [Robotix22](https://github.com/Robotix22)
+  (which achieves the same Power-as-Enter behavior with a branch rewrite).
+
